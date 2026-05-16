@@ -1,0 +1,27 @@
+{
+  "name": "microservice-test",
+  "dockerComposeFile": [
+    "../docker-compose.yml"
+  ],
+  "service": "workspace",
+  "workspaceFolder": "/workspaces/microservice_test",
+  "runServices": [
+    "workspace",
+    "greeter",
+    "math",
+    "notes",
+    "frontend"
+  ],
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [5173, 8001, 8002, 8003],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker",
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
+}

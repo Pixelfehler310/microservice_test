@@ -1,0 +1,41 @@
+services:
+  workspace:
+    image: mcr.microsoft.com/devcontainers/universal:2
+    command: sleep infinity
+    working_dir: /workspaces/microservice_test
+    volumes:
+      - .:/workspaces/microservice_test:cached
+    tty: true
+    stdin_open: true
+
+  greeter:
+    build:
+      context: ./services/greeter
+    ports:
+      - "8001:8000"
+
+  math:
+    build:
+      context: ./services/math
+    ports:
+      - "8002:8000"
+
+  notes:
+    build:
+      context: ./services/notes
+    ports:
+      - "8003:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_GREETER_URL: http://localhost:8001
+      VITE_MATH_URL: http://localhost:8002
+      VITE_NOTES_URL: http://localhost:8003
+    depends_on:
+      - greeter
+      - math
+      - notes
+    ports:
+      - "5173:5173"
