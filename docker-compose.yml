@@ -26,6 +26,34 @@ services:
     ports:
       - "8003:8000"
 
+  inventory:
+    build:
+      context: ./services/inventory
+    ports:
+      - "8004:8000"
+
+  shipping:
+    build:
+      context: ./services/shipping
+    environment:
+      INVENTORY_URL: http://inventory:8000
+    depends_on:
+      - inventory
+    ports:
+      - "8005:8000"
+
+  checkout:
+    build:
+      context: ./services/checkout
+    environment:
+      INVENTORY_URL: http://inventory:8000
+      SHIPPING_URL: http://shipping:8000
+    depends_on:
+      - inventory
+      - shipping
+    ports:
+      - "8006:8000"
+
   frontend:
     build:
       context: ./frontend
@@ -33,9 +61,11 @@ services:
       VITE_GREETER_URL: http://localhost:8001
       VITE_MATH_URL: http://localhost:8002
       VITE_NOTES_URL: http://localhost:8003
+      VITE_CHECKOUT_URL: http://localhost:8006
     depends_on:
       - greeter
       - math
       - notes
+      - checkout
     ports:
       - "5173:5173"
