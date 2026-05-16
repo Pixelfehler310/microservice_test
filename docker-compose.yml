@@ -1,3 +1,8 @@
+x-app-logging-labels: &app-logging-labels
+  app: microservice-test
+  env: dev
+  logging: enabled
+
 services:
   workspace:
     image: mcr.microsoft.com/devcontainers/universal:2
@@ -11,24 +16,36 @@ services:
   greeter:
     build:
       context: ./services/greeter
+    labels:
+      <<: *app-logging-labels
+      service: greeter
     ports:
       - "8001:8000"
 
   math:
     build:
       context: ./services/math
+    labels:
+      <<: *app-logging-labels
+      service: math
     ports:
       - "8002:8000"
 
   notes:
     build:
       context: ./services/notes
+    labels:
+      <<: *app-logging-labels
+      service: notes
     ports:
       - "8003:8000"
 
   inventory:
     build:
       context: ./services/inventory
+    labels:
+      <<: *app-logging-labels
+      service: inventory
     ports:
       - "8004:8000"
 
@@ -39,6 +56,9 @@ services:
       INVENTORY_URL: http://inventory:8000
     depends_on:
       - inventory
+    labels:
+      <<: *app-logging-labels
+      service: shipping
     ports:
       - "8005:8000"
 
@@ -51,6 +71,9 @@ services:
     depends_on:
       - inventory
       - shipping
+    labels:
+      <<: *app-logging-labels
+      service: checkout
     ports:
       - "8006:8000"
 
@@ -67,5 +90,46 @@ services:
       - math
       - notes
       - checkout
+    labels:
+      <<: *app-logging-labels
+      service: frontend
     ports:
       - "5173:5173"
+
+  loki:
+    image: grafana/loki:3.0.0
+    command: -config.file=/etc/loki/config.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    volumes:
+      - ./monitoring/promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - promtail-positions:/var/lib/promtail
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    depends_on:
+      - loki
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  loki-data:
+  grafana-data:
+  promtail-positions:

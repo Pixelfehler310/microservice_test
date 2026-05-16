@@ -11,6 +11,9 @@ Kleines Demo-Projekt mit mehreren Python-Microservices, einem React-Frontend und
 - `shipping`: berechnet Versandangebote auf Basis des Inventory-Services
 - `checkout`: aggregiert Bestand und Versand zu einem kompletten Angebots-Flow
 - `frontend`: React-Oberflaeche zum direkten Testen aller Services
+- `loki`: zentrales Log-Backend fuer Container-Logs
+- `promtail`: sammelt markierte Container-Logs aus Docker und schiebt sie an Loki
+- `grafana`: UI zum Durchsuchen und Visualisieren der Logs
 
 Die drei neuen Services erzeugen bewusst eine kleine Call-Chain fuer spaeteres Request-Logging:
 
@@ -20,6 +23,8 @@ Client -> checkout -> inventory
 ```
 
 Alle drei propagieren dieselbe `X-Request-ID` und schreiben strukturierte JSON-Logs. Damit lassen sich spaeter mit Loki und Promtail zusammenhaengende Requests serviceuebergreifend nachvollziehen.
+
+Fuer das Demo-Logging bekommen alle App-Container feste Docker-Labels wie `app=microservice-test`, `env=dev`, `service=...` und `logging=enabled`. Promtail sammelt nur diese markierten Container, der `workspace`-Container bleibt bewusst draussen.
 
 ## Start
 
@@ -36,6 +41,8 @@ Danach sind diese UIs erreichbar:
 - Inventory Docs: http://localhost:8004/docs
 - Shipping Docs: http://localhost:8005/docs
 - Checkout Docs: http://localhost:8006/docs
+- Grafana: http://localhost:3000
+- Loki API: http://localhost:3100/ready
 
 Beispiel fuer die neue Kette:
 
@@ -53,6 +60,38 @@ curl -X POST http://localhost:8006/checkout/quote \
 		]
 	}'
 ```
+
+## Logging Stack
+
+Die Observability-Komponenten sind direkt in `docker-compose.yml` eingebunden. Die Konfigurationsdateien liegen unter:
+
+```text
+monitoring/
+	grafana/
+		provisioning/
+			datasources/
+				loki.yml
+	loki/
+		config.yml
+	promtail/
+		config.yml
+```
+
+Nach dem Start kannst du in Grafana unter `Explore` zum Beispiel diese LogQL-Abfragen verwenden:
+
+```logql
+{app="microservice-test"}
+```
+
+```logql
+{service="checkout"} |= "demo-checkout-002"
+```
+
+```logql
+{service="inventory"} |= "inventory.fulfillment_planned"
+```
+
+Hinweis: Promtail ist fuer dieses Lernprojekt bewusst als einfache Demo-Loesung eingebunden, obwohl es inzwischen End of Life ist. Wenn der Stack spaeter dauerhaft weiterlebt, sollte der Collector mittelfristig auf Grafana Alloy umgestellt werden.
 
 ## Dev Container
 
